@@ -1,0 +1,194 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-sync-job
+  namespace: bot-infra
+  labels:
+    app: data-sync
+    component: sync-job
+spec:
+  # Run every night at 2 AM
+  schedule: "0 2 * * *"
+  timeZone: "UTC"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid  # Don't allow overlapping sync jobs
+  startingDeadlineSeconds: 300  # 5 minutes deadline to start
+  
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 7200  # 2 hour timeout for job (increased for Zoho Desk)
+      backoffLimit: 2  # Retry up to 2 times on failure
+      template:
+        metadata:
+          labels:
+            app: data-sync
+            component: sync-job
+        spec:
+          serviceAccountName: slack-bot-sa
+          restartPolicy: OnFailure
+          containers:
+          - name: sync-job
+            image: 543148812499.dkr.ecr.us-east-2.amazonaws.com/supbot/sync-job:latest
+            imagePullPolicy: Always
+            env:
+            # ConfigMap values
+            - name: SYNC_CONFLUENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: SYNC_CONFLUENCE
+            - name: SYNC_JIRA
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: SYNC_JIRA
+            - name: SYNC_ZOHO_DESK
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: SYNC_ZOHO_DESK
+            - name: INCREMENTAL_SYNC
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: INCREMENTAL_SYNC
+            - name: SYNC_DAYS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: SYNC_DAYS
+            - name: ZOHO_SYNC_DAYS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_SYNC_DAYS
+            - name: ZOHO_INCREMENTAL_SYNC
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_INCREMENTAL_SYNC
+            - name: ZOHO_MAX_TICKETS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_MAX_TICKETS
+            - name: ZOHO_INCLUDE_CONVERSATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_INCLUDE_CONVERSATIONS
+            - name: ZOHO_DEPARTMENT_IDS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_DEPARTMENT_IDS
+            - name: ZOHO_TICKET_STATUSES
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_TICKET_STATUSES
+            - name: ZOHO_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: ZOHO_DOMAIN
+            - name: CHROMADB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: CHROMADB_HOST
+            - name: CHROMADB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: CHROMADB_PORT
+            - name: EMBEDDING_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: EMBEDDING_MODEL
+            - name: CONFLUENCE_SPACES
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: CONFLUENCE_SPACES
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: LOG_LEVEL
+            
+            # Secret values - Confluence
+            - name: CONFLUENCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: confluence-secrets
+                  key: CONFLUENCE_URL
+                  optional: true
+            - name: CONFLUENCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: confluence-secrets
+                  key: CONFLUENCE_USERNAME
+                  optional: true
+            - name: CONFLUENCE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: confluence-secrets
+                  key: CONFLUENCE_API_TOKEN
+                  optional: true
+            
+            # Secret values - Jira
+            - name: JIRA_URL
+              valueFrom:
+                secretKeyRef:
+                  name: jira-secrets
+                  key: JIRA_URL
+                  optional: true
+            - name: JIRA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: jira-secrets
+                  key: JIRA_USERNAME
+                  optional: true
+            - name: JIRA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: jira-secrets
+                  key: JIRA_API_TOKEN
+                  optional: true
+            
+            # Secret values - Zoho Desk
+            - name: ZOHO_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: zoho-desk-secrets
+                  key: ZOHO_CLIENT_ID
+                  optional: true
+            - name: ZOHO_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: zoho-desk-secrets
+                  key: ZOHO_CLIENT_SECRET
+                  optional: true
+            - name: ZOHO_REFRESH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: zoho-desk-secrets
+                  key: ZOHO_REFRESH_TOKEN
+                  optional: true
+            - name: ZOHO_ORG_ID
+              valueFrom:
+                secretKeyRef:
+                  name: zoho-desk-secrets
+                  key: ZOHO_ORG_ID
+                  optional: true
+            
+            resources:
+              requests:
+                memory: "1Gi"
+                cpu: "500m"
+              limits:
+	        memory: "4Gi"
+                cpu: "2000m"

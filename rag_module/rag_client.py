@@ -1,0 +1,210 @@
+import logging
+import os
+from typing import List, Dict, Optional, Any
+import chromadb
+from chromadb.config import Settings
+
+from .embeddings import EmbeddingService
+from .utils import clean_text
+
+logger = logging.getLogger(__name__)
+
+class RAGClient:
+    """Client for RAG operations with ChromaDB"""
+    
+    def __init__(self, 
+                 chroma_host: str = None, 
+                 chroma_port: int = None,
+                 collection_name: str = "knowledge_base"):
+        
+        self.chroma_host = chroma_host or os.environ.get("CHROMADB_HOST", "chromadb-service.bot-infra.svc.cluster.local")
+        self.chroma_port = chroma_port or int(os.environ.get("CHROMADB_PORT", "8000"))
+        self.collection_name = collection_name
+        
+        self.client = None
+        self.collection = None
+        self.embedding_service = EmbeddingService()
+        
+        self._initialize_client()
+    
+    def _initialize_client(self):
+        """Initialize ChromaDB client and collection"""
+        try:
+            logger.info(f"Connecting to ChromaDB at {self.chroma_host}:{self.chroma_port}")
+            
+            self.client = chromadb.HttpClient(
+                host=self.chroma_host,
+                port=self.chroma_port,
+                settings=Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=False
+                )
+            )
+            
+            # Test connection
+            heartbeat = self.client.heartbeat()
+            logger.info(f"ChromaDB connection successful: {heartbeat}")
+            
+            # Get or create collection
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                metadata={"description": "Knowledge base for Slack bot"}
+            )
+            
+            logger.info(f"Connected to collection: {self.collection_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize ChromaDB client: {e}")
+            raise
+    
+    def add_document(self, 
+                    document_id: str, 
+                    content: str, 
+                    metadata: Dict[str, Any]) -> bool:
+        """Add a single document to the knowledge base"""
+        try:
+            # Generate embedding
+            embedding = self.embedding_service.encode(content)
+            
+            # Add to collection
+            self.collection.add(
+                ids=[document_id],
+                embeddings=[embedding.tolist()],
+                documents=[content],
+                metadatas=[metadata]
+            )
+            
+            logger.debug(f"Added document: {document_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to add document {document_id}: {e}")
+            return False
+    
+    def add_documents_batch(self, 
+                           documents: List[Dict[str, Any]]) -> int:
+        """Add multiple documents in batch"""
+        if not documents:
+            return 0
+        
+        try:
+            ids = []
+            contents = []
+            metadatas = []
+            
+            for doc in documents:
+                ids.append(doc['id'])
+                contents.append(doc['content'])
+                metadatas.append(doc['metadata'])
+            
+            # Generate embeddings in batch
+            embeddings = self.embedding_service.encode_batch(contents)
+            
+            # Add to collection
+            self.collection.add(
+                ids=ids,
+                embeddings=[emb.tolist() for emb in embeddings],
+                documents=contents,
+                metadatas=metadatas
+            )
+            
+            logger.info(f"Added {len(documents)} documents to knowledge base")
+            return len(documents)
+            
+        except Exception as e:
+            logger.error(f"Failed to add document batch: {e}")
+            return 0
+    
+    def search(self, 
+              query: str, 
+              top_k: int = 5,
+              filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Search for relevant documents"""
+        try:
+            # Clean and generate query embedding
+            clean_query = clean_text(query)
+            query_embedding = self.embedding_service.encode(clean_query)
+            
+            # Prepare search parameters - only include where clause if filters are provided and not empty
+            search_params = {
+                "query_embeddings": [query_embedding.tolist()],
+                "n_results": top_k
+            }
+            
+            # Only add where clause if filters exist and are not empty
+            if filters and any(filters.values() if isinstance(filters, dict) else [filters]):
+                search_params["where"] = filters
+            
+            # Search collection
+            results = self.collection.query(**search_params)
+            
+            # Format results
+            formatted_results = []
+            if results['documents'] and results['documents'][0]:
+                for i, doc in enumerate(results['documents'][0]):
+                    metadata = results['metadatas'][0][i] if results['metadatas'][0] else {}
+                    distance = results['distances'][0][i] if results['distances'] else None
+                    
+                    formatted_results.append({
+                        'content': doc,
+                        'metadata': metadata,
+                        'score': 1 - distance if distance is not None else None,  # Convert distance to similarity
+                        'title': metadata.get('title', 'Untitled'),
+                        'url': metadata.get('url', ''),
+                        'type': metadata.get('type', 'unknown')
+                    })
+            
+            logger.debug(f"Found {len(formatted_results)} results for query: {query[:50]}...")
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"Search failed for query '{query}': {e}")
+            return []
+    
+    def delete_documents(self, document_ids: List[str]) -> bool:
+        """Delete documents by IDs"""
+        try:
+            self.collection.delete(ids=document_ids)
+            logger.info(f"Deleted {len(document_ids)} documents")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete documents: {e}")
+            return False
+    
+    def get_collection_stats(self) -> Dict[str, Any]:
+        """Get collection statistics"""
+        try:
+            count = self.collection.count()
+            return {
+                'collection_name': self.collection_name,
+                'document_count': count,
+                'status': 'healthy'
+            }
+        except Exception as e:
+            logger.error(f"Failed to get collection stats: {e}")
+            return {
+                'collection_name': self.collection_name,
+                'document_count': 0,
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    def health_check(self) -> bool:
+        """Check if RAG system is healthy"""
+        try:
+            # Try heartbeat first
+            try:
+                heartbeat = self.client.heartbeat()
+                logger.debug(f"ChromaDB heartbeat successful: {heartbeat}")
+            except Exception as e:
+                # If heartbeat fails, try list_collections as alternative
+                logger.debug(f"Heartbeat failed, trying alternative health check: {e}")
+                collections = self.client.list_collections()
+                logger.debug(f"Alternative health check successful: {len(collections)} collections")
+            
+            # Test collection access
+            self.collection.count()
+            return True
+        except Exception as e:
+            logger.error(f"RAG health check failed: {e}")
+            return False

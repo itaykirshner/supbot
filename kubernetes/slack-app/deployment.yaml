@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-app
+  namespace: bot-infra
+  labels:
+    app: slack-app
+    component: bot
+spec:
+  replicas: 1  # Keep at 1 for Slack socket mode
+  selector:
+    matchLabels:
+      app: slack-app
+  template:
+    metadata:
+      labels:
+        app: slack-app
+        component: bot
+    spec:
+      serviceAccountName: slack-bot-sa
+      containers:
+      - name: slack-app
+        image: 543148812499.dkr.ecr.us-east-2.amazonaws.com/supbot/slack-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: health
+        env:
+        # ConfigMap values
+        - name: RAG_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: RAG_ENABLED
+        - name: CHROMADB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: CHROMADB_HOST
+        - name: CHROMADB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: CHROMADB_PORT
+        - name: EMBEDDING_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: EMBEDDING_MODEL
+        - name: MAX_HISTORY_MESSAGES
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: MAX_HISTORY_MESSAGES
+        - name: MAX_MESSAGE_LENGTH
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: MAX_MESSAGE_LENGTH
+        - name: LLM_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: LLM_TIMEOUT
+        - name: MAX_TOKENS
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: MAX_TOKENS
+        - name: HEALTH_CHECK_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: HEALTH_CHECK_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: LOG_LEVEL
+        
+        # Secret values
+        - name: SLACK_APP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-app-secrets
+              key: SLACK_APP_TOKEN
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-app-secrets
+              key: SLACK_BOT_TOKEN
+        - name: LLM_API_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: slack-app-secrets
+              key: LLM_API_ENDPOINT
+        - name: LLM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: slack-app-secrets
+              key: LLM_API_KEY
+        
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+            
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          
+      restartPolicy: Always
