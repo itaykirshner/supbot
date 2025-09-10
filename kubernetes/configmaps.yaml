@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slack-app-config
+  namespace: bot-infra
+data:
+  # RAG Configuration
+  RAG_ENABLED: "true"
+  CHROMADB_HOST: "chromadb-service.bot-infra.svc.cluster.local"
+  CHROMADB_PORT: "8000"
+  EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+  
+  # Application Configuration
+  MAX_HISTORY_MESSAGES: "3"
+  MAX_MESSAGE_LENGTH: "4000"
+  LLM_TIMEOUT: "45"
+  MAX_TOKENS: "300"
+  HEALTH_CHECK_PORT: "8080"
+  LOG_LEVEL: "INFO"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sync-job-config
+  namespace: bot-infra
+data:
+  # Sync Configuration
+  SYNC_CONFLUENCE: "true"
+  SYNC_JIRA: "false"  # Enable when ready
+  INCREMENTAL_SYNC: "true"
+  SYNC_DAYS: "7"
+
+  # Zoho Desk Configuration
+  SYNC_ZOHO_DESK: "true"
+  ZOHO_SYNC_DAYS: "30"  # Look back 30 days for tickets
+  ZOHO_INCREMENTAL_SYNC: "true"
+  ZOHO_MAX_TICKETS: "500"
+  ZOHO_INCLUDE_CONVERSATIONS: "true"
+  
+  # Zoho Desk Filters (comma-separated)
+  ZOHO_DEPARTMENT_IDS: ""  # Empty means all departments
+  ZOHO_TICKET_STATUSES: "Closed,Resolved"
+  ZOHO_DOMAIN: "com"  # or "eu", "in", etc.
+
+  # ChromaDB Configuration
+  CHROMADB_HOST: "chromadb-service.bot-infra.svc.cluster.local"
+  CHROMADB_PORT: "8000"
+  EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+  
+  # Confluence Spaces (comma-separated list)
+  CONFLUENCE_SPACES: "SR"  # Empty means all spaces
+
+  # Jira Configuration
+  JIRA_PROJECT_KEYS: "IG,ML,NUC"
+  
+  # Logging
+  LOG_LEVEL: "INFO"

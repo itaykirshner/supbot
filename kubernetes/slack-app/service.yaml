@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: slack-app-service
+  namespace: bot-infra
+  labels:
+    app: slack-app
+spec:
+  selector:
+    app: slack-app
+  ports:
+  - name: health
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
