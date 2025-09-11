@@ -45,7 +45,7 @@ The configuration is now managed through ConfigMaps and Secrets:
 - Application settings (timeouts, limits, features)
 - Caching configuration
 - Performance settings
-- Logging levels
+- Logging level
 
 **Secrets** (`kubernetes/secrets.yaml`):
 - Slack tokens
