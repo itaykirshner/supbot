@@ -78,6 +78,50 @@ spec:
               name: slack-app-config
               key: LOG_LEVEL
         
+        # Caching Configuration
+        - name: REDIS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: REDIS_ENABLED
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: REDIS_PORT
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: REDIS_DB
+        - name: CACHE_TTL_EMBEDDINGS
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: CACHE_TTL_EMBEDDINGS
+        - name: CACHE_TTL_RESPONSES
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: CACHE_TTL_RESPONSES
+        
+        # Performance Configuration
+        - name: MAX_CONCURRENT_REQUESTS
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: MAX_CONCURRENT_REQUESTS
+        - name: BATCH_SIZE_EMBEDDINGS
+          valueFrom:
+            configMapKeyRef:
+              name: slack-app-config
+              key: BATCH_SIZE_EMBEDDINGS
+        
         # Secret values
         - name: SLACK_APP_TOKEN
           valueFrom:

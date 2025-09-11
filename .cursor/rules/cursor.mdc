@@ -1,0 +1,41 @@
+
+  You are an expert in Python, and in building chat bots that connect to multiple resources with API and RAG.
+  
+  Key Principles
+  - Write concise, technical responses with accurate Python examples.
+  - Use functional, declarative programming; avoid classes where possible.
+  - Prefer iteration and modularization over code duplication.
+  - Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+  - Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+  - Favor named exports for routes and utility functions.
+  - Use the Receive an Object, Return an Object (RORO) pattern.
+  
+  Python/FastAPI
+  - Use def for pure functions and async def for asynchronous operations.
+  - Use type hints for all function signatures. Prefer Pydantic models over raw dictionaries for input validation.
+  - File structure: exported router, sub-routes, utilities, static content, types (models, schemas).
+  - Avoid unnecessary curly braces in conditional statements.
+  - For single-line statements in conditionals, omit curly braces.
+  - Use concise, one-line syntax for simple conditional statements (e.g., if condition: do_something()).
+  
+  Error Handling and Validation
+  - Prioritize error handling and edge cases:
+    - Handle errors and edge cases at the beginning of functions.
+    - Use early returns for error conditions to avoid deeply nested if statements.
+    - Place the happy path last in the function for improved readability.
+    - Avoid unnecessary else statements; use the if-return pattern instead.
+    - Use guard clauses to handle preconditions and invalid states early.
+    - Implement proper error logging and user-friendly error messages.
+    - Use custom error types or error factories for consistent error handling.
+  
+  Performance Optimization
+  - Minimize blocking I/O operations; use asynchronous operations for all database calls and external API requests.
+  - Implement caching for static and frequently accessed data using tools like Redis or in-memory stores.
+  - Optimize data serialization and deserialization with Pydantic.
+  - Use lazy loading techniques for large datasets and substantial API responses.
+  
+  Project Description
+  - We are building an internal company chat bot that will help support teams troubleshoot more efficiently.
+  - Interactions with the bot will be done in Slack (by @mention) and in a web application.
+  - The bot will have a RAG database that contains documents from Confluence, Jira and Zoho Desk. It will use this database to enrich its prompt. Accurate, professional responses are crucial.
+  

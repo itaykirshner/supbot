@@ -20,6 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY slack-app/ .
 COPY rag_module /app/rag_module
 
+# Install additional dependencies for the new functional approach
+RUN pip install --no-cache-dir pydantic[email] redis aiohttp
+
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app \
     && chown -R app:app /app

@@ -44,6 +44,10 @@ A modular Slack bot that uses Retrieval-Augmented Generation (RAG) to answer que
 
 2. **Create secrets:**
    ```bash
+   # Option 1: Use the automated script (recommended)
+   ./scripts/setup-secrets.sh
+   
+   # Option 2: Manual setup
    cp kubernetes/secrets.yaml.template kubernetes/secrets.yaml
    # Edit and base64 encode your secrets
    ```
@@ -153,8 +157,18 @@ kubectl create job --from=cronjob/confluence-sync-job test-sync -n bot-infra
 
 ## Security
 
-- All secrets stored in Kubernetes secrets
-- RBAC configured with minimal permissions
-- Network policies restrict ChromaDB access
-- Non-root containers
-- Resource limits prevent resource exhaustion
+- **Secrets Management**: All sensitive data is stored in Kubernetes secrets with base64 encoding
+- **Access Control**: RBAC is configured for minimal required permissions
+- **Network Security**: Network policies restrict pod communication
+- **Container Security**: Non-root containers with resource limits
+- **Monitoring**: Comprehensive security monitoring and alerting
+- **Compliance**: Regular security assessments and updates
+
+### Security Documentation
+- [Security Setup Guide](SECRETS_SETUP.md) - Complete secrets configuration
+- [Security Checklist](SECURITY_CHECKLIST.md) - Comprehensive security checklist
+- [Security Quick Reference](SECURITY_QUICK_REFERENCE.md) - Quick commands and troubleshooting
+
+### Security Scripts
+- `scripts/setup-secrets.sh` - Automated secrets setup (macOS/Linux)
+- `scripts/setup-secrets.ps1` - Automated secrets setup (Windows)

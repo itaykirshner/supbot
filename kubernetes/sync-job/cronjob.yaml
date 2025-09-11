@@ -18,7 +18,7 @@ spec:
   jobTemplate:
     spec:
       activeDeadlineSeconds: 7200  # 2 hour timeout for job (increased for Zoho Desk)
-      backoffLimit: 2  # Retry up to 2 times on failure
+      backoffLimit: 0  # Retry times on failure
       template:
         metadata:
           labels:
@@ -26,10 +26,10 @@ spec:
             component: sync-job
         spec:
           serviceAccountName: slack-bot-sa
-          restartPolicy: OnFailure
+          restartPolicy: Never
           containers:
           - name: sync-job
-            image: 543148812499.dkr.ecr.us-east-2.amazonaws.com/supbot/sync-job:latest
+            image: 543148812499.dkr.ecr.us-east-2.amazonaws.com/supbot/sync-job:v0.1
             imagePullPolicy: Always
             env:
             # ConfigMap values
@@ -119,6 +119,40 @@ spec:
                   name: sync-job-config
                   key: LOG_LEVEL
             
+            # Caching Configuration
+            - name: REDIS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: REDIS_ENABLED
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: REDIS_DB
+            - name: CACHE_TTL_EMBEDDINGS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: CACHE_TTL_EMBEDDINGS
+            
+            # Performance Configuration
+            - name: BATCH_SIZE_EMBEDDINGS
+              valueFrom:
+                configMapKeyRef:
+                  name: sync-job-config
+                  key: BATCH_SIZE_EMBEDDINGS
+            
             # Secret values - Confluence
             - name: CONFLUENCE_URL
               valueFrom:
@@ -137,6 +171,12 @@ spec:
                 secretKeyRef:
                   name: confluence-secrets
                   key: CONFLUENCE_API_TOKEN
+                  optional: true
+            - name: CONFLUENCE_CLOUD_ID
+              valueFrom:
+                secretKeyRef:
+                  name: confluence-secrets
+                  key: CONFLUENCE_CLOUD_ID
                   optional: true
             
             # Secret values - Jira
@@ -190,5 +230,5 @@ spec:
                 memory: "1Gi"
                 cpu: "500m"
               limits:
-	        memory: "4Gi"
+                memory: "4Gi"
                 cpu: "2000m"

@@ -14,10 +14,13 @@ RUN apt-get update && apt-get install -y \
 COPY sync-job/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install additional dependencies for the new functional approach
+RUN pip install --no-cache-dir pydantic[email] redis aiohttp
+
 # Copy application code
 COPY sync-job/ .
 COPY rag_module /app/rag_module
-COPY zoho-desk-module /app/zoho-desk-module
+COPY zoho_desk_module /app/zoho_desk_module
 
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash syncuser \

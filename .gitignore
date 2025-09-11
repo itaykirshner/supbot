@@ -44,6 +44,22 @@ logs/
 
 # Kubernetes secrets
 kubernetes/secrets.yaml
+kubernetes/secrets-*.yaml
+kubernetes/*-secrets.yaml
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# Secret management
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
 
 # Local development
 docker-compose.override.yaml

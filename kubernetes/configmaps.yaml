@@ -17,6 +17,18 @@ data:
   MAX_TOKENS: "300"
   HEALTH_CHECK_PORT: "8080"
   LOG_LEVEL: "INFO"
+  
+  # Caching Configuration
+  REDIS_ENABLED: "false"  # Set to true if Redis is available
+  REDIS_HOST: "redis-service.bot-infra.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  CACHE_TTL_EMBEDDINGS: "3600"
+  CACHE_TTL_RESPONSES: "1800"
+  
+  # Performance Configuration
+  MAX_CONCURRENT_REQUESTS: "10"
+  BATCH_SIZE_EMBEDDINGS: "32"
 
 ---
 apiVersion: v1
@@ -53,6 +65,16 @@ data:
 
   # Jira Configuration
   JIRA_PROJECT_KEYS: "IG,ML,NUC"
+  
+  # Caching Configuration (for sync job)
+  REDIS_ENABLED: "false"  # Set to true if Redis is available
+  REDIS_HOST: "redis-service.bot-infra.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  CACHE_TTL_EMBEDDINGS: "3600"
+  
+  # Performance Configuration
+  BATCH_SIZE_EMBEDDINGS: "32"
   
   # Logging
   LOG_LEVEL: "INFO"
