@@ -281,7 +281,7 @@ class ConfluenceClient:
                 if not space_key:
                     continue
                 
-                pages = self.get_space_pages(space_key, limit=min(limit, 50))
+                pages = self.get_space_pages(space_key, limit=limit)
                 logger.info(f"Checking {len(pages)} pages for recent updates (since {since.strftime('%Y-%m-%d %H:%M:%S')})")
                 
                 for page in pages:
@@ -293,13 +293,13 @@ class ConfluenceClient:
                                 version_info['when'].replace('Z', '+00:00').replace('+0000', '+00:00')
                             )
                             page_title = page.get('title', 'Unknown')
-                            logger.debug(f"Page '{page_title}' updated: {page_date.strftime('%Y-%m-%d %H:%M:%S')} (since: {since.strftime('%Y-%m-%d %H:%M:%S')})")
+                            logger.info(f"Page '{page_title}' updated: {page_date.strftime('%Y-%m-%d %H:%M:%S')} (since: {since.strftime('%Y-%m-%d %H:%M:%S')})")
                             
                             if page_date >= since:
                                 recent_pages.append(page)
-                                logger.debug(f"Page '{page_title}' is recent - adding to sync")
+                                logger.info(f"Page '{page_title}' is recent - adding to sync")
                             else:
-                                logger.debug(f"Page '{page_title}' is too old - skipping")
+                                logger.info(f"Page '{page_title}' is too old - skipping")
                         except Exception as e:
                             logger.debug(f"Failed to parse date for page {page.get('id')}: {e}")
                     else:

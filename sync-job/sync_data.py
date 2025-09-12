@@ -112,6 +112,11 @@ class SyncManager:
                             limit=100,
                             space_keys=[space_key]  # Only check this specific space
                         )
+                        
+                        # If no recent pages found, fallback to all pages for this space
+                        if not pages:
+                            logger.warning(f"No recent pages found in space {space_key} (last {self.sync_days} days). Falling back to all pages.")
+                            pages = self.confluence_client.get_space_pages(space_key)
                     else:
                         # Get all pages from this specific space
                         pages = self.confluence_client.get_space_pages(space_key)
