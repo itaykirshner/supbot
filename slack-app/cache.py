@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 import asyncio
 import numpy as np
 
-from .config import settings
-from .models import EmbeddingCacheEntry, LLMCacheEntry
+from config import settings
+from models import EmbeddingCacheEntry, LLMCacheEntry
 
 logger = logging.getLogger(__name__)
 

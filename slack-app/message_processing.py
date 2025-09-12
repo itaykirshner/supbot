@@ -7,8 +7,8 @@ from typing import List, Dict, Optional
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from .models import SlackMessage, LLMMessage, MessageRole
-from .config import settings
+from models import SlackMessage, LLMMessage, MessageRole
+from config import settings
 
 logger = logging.getLogger(__name__)
 

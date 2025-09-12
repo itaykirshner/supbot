@@ -8,9 +8,9 @@ import json
 import hashlib
 from typing import List, Optional
 
-from .models import LLMMessage
-from .config import settings
-from .cache import get_cached_llm_response, cache_llm_response, generate_query_hash
+from models import LLMMessage
+from config import settings
+from cache import get_cached_llm_response, cache_llm_response, generate_query_hash
 
 logger = logging.getLogger(__name__)
 
