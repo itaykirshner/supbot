@@ -8,8 +8,8 @@ import chromadb
 from chromadb.config import Settings
 import numpy as np
 
-from .embeddings import get_embedding_service
-from .utils import clean_text
+from rag_module.embeddings import get_embedding_service
+from rag_module.utils import clean_text
 from cache import get_cached_embedding, cache_embedding
 from models import RAGSearchResult, DocumentChunk
 from config import settings
