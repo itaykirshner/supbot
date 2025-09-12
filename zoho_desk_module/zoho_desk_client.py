@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import time
 from urllib.parse import urlencode
 
-from .zoho_auth import ZohoDeskAuth
+from zoho_desk_module.zoho_auth import ZohoDeskAuth
 
 logger = logging.getLogger(__name__)
 
