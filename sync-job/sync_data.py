@@ -37,6 +37,15 @@ class SyncManager:
         
         logger.info(f"Sync configuration: Confluence={self.sync_confluence}, Jira={self.sync_jira}")
         logger.info(f"Incremental sync: {self.incremental_sync}, Days: {self.sync_days}")
+        logger.info(f"Confluence spaces: {self.confluence_spaces}")
+        logger.info(f"Jira projects: {self.jira_projects}")
+        logger.info(f"Environment variables:")
+        logger.info(f"  SYNC_CONFLUENCE: {os.environ.get('SYNC_CONFLUENCE', 'not set')}")
+        logger.info(f"  SYNC_JIRA: {os.environ.get('SYNC_JIRA', 'not set')}")
+        logger.info(f"  CONFLUENCE_SPACES: {os.environ.get('CONFLUENCE_SPACES', 'not set')}")
+        logger.info(f"  JIRA_PROJECT_KEYS: {os.environ.get('JIRA_PROJECT_KEYS', 'not set')}")
+        logger.info(f"  INCREMENTAL_SYNC: {os.environ.get('INCREMENTAL_SYNC', 'not set')}")
+        logger.info(f"  SYNC_DAYS: {os.environ.get('SYNC_DAYS', 'not set')}")
         
         self._initialize_clients()
     
