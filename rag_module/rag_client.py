@@ -19,7 +19,8 @@ try:
 except ImportError:
     # Fallback for sync job or standalone usage
     import os
-    from pydantic import BaseSettings, Field
+    from pydantic_settings import BaseSettings
+    from pydantic import Field
     from typing import List, Dict, Any, Optional
     
     class FallbackSettings(BaseSettings):

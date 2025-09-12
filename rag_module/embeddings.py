@@ -12,7 +12,8 @@ try:
 except ImportError:
     # Fallback for sync job or standalone usage
     import os
-    from pydantic import BaseSettings, Field
+    from pydantic_settings import BaseSettings
+    from pydantic import Field
     
     class FallbackSettings(BaseSettings):
         embedding_model: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
