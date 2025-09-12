@@ -6,7 +6,19 @@ from typing import List, Union, Optional
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-from config import settings
+# Try to import settings from slack-app, fallback to environment variables
+try:
+    from config import settings
+except ImportError:
+    # Fallback for sync job or standalone usage
+    import os
+    from pydantic import BaseSettings, Field
+    
+    class FallbackSettings(BaseSettings):
+        embedding_model: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
+        batch_size_embeddings: int = Field(default=32, env="BATCH_SIZE_EMBEDDINGS")
+    
+    settings = FallbackSettings()
 
 logger = logging.getLogger(__name__)
 

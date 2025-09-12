@@ -10,9 +10,57 @@ import numpy as np
 
 from rag_module.embeddings import get_embedding_service
 from rag_module.utils import clean_text
-from cache import get_cached_embedding, cache_embedding
-from models import RAGSearchResult, DocumentChunk
-from config import settings
+
+# Try to import from slack-app, fallback for sync job
+try:
+    from cache import get_cached_embedding, cache_embedding
+    from models import RAGSearchResult, DocumentChunk
+    from config import settings
+except ImportError:
+    # Fallback for sync job or standalone usage
+    import os
+    from pydantic import BaseSettings, Field
+    from typing import List, Dict, Any, Optional
+    
+    class FallbackSettings(BaseSettings):
+        chromadb_host: str = Field(default="localhost", env="CHROMADB_HOST")
+        chromadb_port: int = Field(default=8000, env="CHROMADB_PORT")
+        embedding_model: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
+        batch_size_embeddings: int = Field(default=32, env="BATCH_SIZE_EMBEDDINGS")
+    
+    settings = FallbackSettings()
+    
+    # Fallback models for sync job
+    class RAGSearchResult:
+        def __init__(self, content: str, metadata: Dict[str, Any], score: float):
+            self.content = content
+            self.metadata = metadata
+            self.score = score
+        
+        def dict(self):
+            return {
+                "content": self.content,
+                "metadata": self.metadata,
+                "score": self.score
+            }
+    
+    class DocumentChunk:
+        def __init__(self, content: str, metadata: Dict[str, Any]):
+            self.content = content
+            self.metadata = metadata
+        
+        def dict(self):
+            return {
+                "content": self.content,
+                "metadata": self.metadata
+            }
+    
+    # Fallback cache functions (no-op for sync job)
+    async def get_cached_embedding(text: str) -> Optional[List[float]]:
+        return None
+    
+    async def cache_embedding(text: str, embedding: List[float]) -> None:
+        pass
 
 logger = logging.getLogger(__name__)
 
