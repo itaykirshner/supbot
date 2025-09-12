@@ -10,9 +10,9 @@ import numpy as np
 
 from .embeddings import get_embedding_service
 from .utils import clean_text
-from ..slack_app.cache import get_cached_embedding, cache_embedding
-from ..slack_app.models import RAGSearchResult, DocumentChunk
-from ..slack_app.config import settings
+from cache import get_cached_embedding, cache_embedding
+from models import RAGSearchResult, DocumentChunk
+from config import settings
 
 logger = logging.getLogger(__name__)
 

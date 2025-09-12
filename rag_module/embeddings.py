@@ -6,7 +6,7 @@ from typing import List, Union, Optional
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-from ..slack_app.config import settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 
