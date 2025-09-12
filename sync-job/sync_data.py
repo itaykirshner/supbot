@@ -5,14 +5,10 @@ import time
 from pathlib import Path
 from typing import List, Dict, Any
 
-# Add rag-module to path
-sys.path.append(str(Path(__file__).parent.parent / "rag-module"))
-
-from rag_client import RAGClient
+from rag_module.rag_client import RAGClient
 from confluence_client import ConfluenceClient
 from jira_client import JiraClient
 from data_processor import DataProcessor
-from zoho_desk_sync import ZohoDeskSyncManager
 
 # Configure logging
 logging.basicConfig(
@@ -33,26 +29,16 @@ class SyncManager:
         # Configuration
         self.sync_confluence = os.environ.get("SYNC_CONFLUENCE", "true").lower() == "true"
         self.sync_jira = os.environ.get("SYNC_JIRA", "false").lower() == "true"  # Default off
-        self.sync_zoho_desk = os.environ.get("SYNC_ZOHO_DESK", "false").lower() == "true"
         self.confluence_spaces = self._parse_space_list(os.environ.get("CONFLUENCE_SPACES", ""))
+        self.jira_projects = self._parse_space_list(os.environ.get("JIRA_PROJECT_KEYS", ""))
         self.incremental_sync = os.environ.get("INCREMENTAL_SYNC", "true").lower() == "true"
         self.sync_days = int(os.environ.get("SYNC_DAYS", "7"))  # For incremental sync
         
-        logger.info(f"Sync configuration: Confluence={self.sync_confluence}, Jira={self.sync_jira}, ZohoDesk={self.sync_zoho_desk}")
+        logger.info(f"Sync configuration: Confluence={self.sync_confluence}, Jira={self.sync_jira}")
         logger.info(f"Incremental sync: {self.incremental_sync}, Days: {self.sync_days}")
         
         self._initialize_clients()
-
-        # Initialize Zoho Desk sync manager
-        self.zoho_desk_sync = None
-        if self.sync_zoho_desk:
-            try:
-                self.zoho_desk_sync = ZohoDeskSyncManager()
-                logger.info("Zoho Desk sync manager initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize Zoho Desk sync manager: {e}")
-                self.sync_zoho_desk = False
-
+    
     def _parse_space_list(self, space_string: str) -> List[str]:
         """Parse comma-separated list of Confluence spaces"""
         if not space_string:
@@ -94,14 +80,12 @@ class SyncManager:
         
         try:
             # Determine which spaces to sync
-            spaces_to_sync = []
-            
             if self.confluence_spaces:
                 # Sync specific spaces
                 spaces_to_sync = self.confluence_spaces
                 logger.info(f"Syncing specific spaces: {spaces_to_sync}")
             else:
-                # Sync all spaces
+                # Sync all spaces - get space keys from all spaces
                 all_spaces = self.confluence_client.get_spaces()
                 spaces_to_sync = [space['key'] for space in all_spaces if space.get('key')]
                 logger.info(f"Syncing all {len(spaces_to_sync)} spaces")
@@ -113,13 +97,14 @@ class SyncManager:
                 try:
                     # Get pages based on sync type
                     if self.incremental_sync:
+                        # Get recently updated pages for this specific space
                         pages = self.confluence_client.get_recently_updated_pages(
                             days=self.sync_days, 
-                            limit=100
+                            limit=100,
+                            space_keys=[space_key]  # Only check this specific space
                         )
-                        # Filter by space if needed
-                        pages = [p for p in pages if p.get('space', {}).get('key') == space_key]
                     else:
+                        # Get all pages from this specific space
                         pages = self.confluence_client.get_space_pages(space_key)
                     
                     logger.info(f"Found {len(pages)} pages in space {space_key}")
@@ -183,13 +168,29 @@ class SyncManager:
         total_processed = 0
         
         try:
-            # Get resolved issues for knowledge base
-            issues = self.jira_client.get_resolved_issues(
-                days=self.sync_days if self.incremental_sync else 365,  # Last year for full sync
-                limit=500
-            )
+            # Determine which projects to sync
+            if self.jira_projects:
+                # Sync specific projects
+                logger.info(f"Syncing specific Jira projects: {self.jira_projects}")
+                all_issues = []
+                for project_key in self.jira_projects:
+                    issues = self.jira_client.get_resolved_issues(
+                        project_key=project_key,
+                        days=self.sync_days if self.incremental_sync else 365,  # Last year for full sync
+                        limit=500
+                    )
+                    all_issues.extend(issues)
+                    logger.info(f"Found {len(issues)} resolved issues in project {project_key}")
+            else:
+                # Sync all projects
+                logger.info("Syncing all Jira projects")
+                all_issues = self.jira_client.get_resolved_issues(
+                    days=self.sync_days if self.incremental_sync else 365,  # Last year for full sync
+                    limit=500
+                )
+                logger.info(f"Found {len(all_issues)} resolved Jira issues")
             
-            logger.info(f"Found {len(issues)} resolved Jira issues")
+            issues = all_issues
             
             # Process issues in batches
             batch_size = 20
@@ -251,7 +252,6 @@ class SyncManager:
             'start_time': start_time,
             'confluence_count': 0,
             'jira_count': 0,
-            'zoho_desk_count': 0,
             'total_count': 0,
             'success': False,
             'errors': []
@@ -285,22 +285,12 @@ class SyncManager:
                     error_msg = f"Jira sync failed: {e}"
                     logger.error(error_msg)
                     results['errors'].append(error_msg)
-
-            if self.sync_zoho_desk and self.zoho_desk_sync:
-                try:
-                    zoho_desk_count = self.zoho_desk_sync.sync_zoho_desk_data()
-                    results['zoho_desk_count'] = zoho_desk_count
-                    logger.info(f"Zoho Desk sync completed: {zoho_desk_count} documents")
-                except Exception as e:
-                    error_msg = f"Zoho Desk sync failed: {e}"
-                    logger.error(error_msg)
-                    results['errors'].append(error_msg)
-
+            
             # Cleanup
             self.cleanup_old_documents()
             
             # Calculate totals
-            results['total_count'] = results['confluence_count'] + results['jira_count'] + results['zoho_desk_count']
+            results['total_count'] = results['confluence_count'] + results['jira_count']
             results['success'] = results['total_count'] > 0 or len(results['errors']) == 0
             
             end_time = time.time()
