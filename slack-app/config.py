@@ -2,7 +2,8 @@
 Application configuration using Pydantic BaseSettings
 """
 import logging
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 from typing import Optional, List
 from enum import Enum
 
