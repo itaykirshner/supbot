@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import sys
@@ -5,7 +6,7 @@ import time
 from pathlib import Path
 from typing import List, Dict, Any
 
-from rag_module.rag_client import RAGClient
+from rag_module.rag_client import add_document, add_documents_batch, delete_documents, health_check as rag_health_check, get_collection_stats
 from confluence_client import ConfluenceClient
 from jira_client import JiraClient
 from data_processor import DataProcessor
@@ -48,9 +49,8 @@ class SyncManager:
     def _initialize_clients(self):
         """Initialize all required clients"""
         try:
-            # Initialize RAG client
-            self.rag_client = RAGClient()
-            logger.info("RAG client initialized")
+            # RAG client is now functional - no initialization needed
+            logger.info("RAG client ready (functional approach)")
             
             # Initialize Confluence client if needed
             if self.sync_confluence:
@@ -70,7 +70,7 @@ class SyncManager:
             logger.error(f"Failed to initialize clients: {e}")
             raise
     
-    def sync_confluence_data(self) -> int:
+    async def sync_confluence_data(self) -> int:
         """Sync Confluence pages to vector database"""
         if not self.confluence_client:
             logger.warning("Confluence client not initialized, skipping sync")
@@ -137,10 +137,10 @@ class SyncManager:
                             # Delete existing documents first (for updates)
                             if self.incremental_sync:
                                 existing_ids = [doc['id'] for doc in documents]
-                                self.rag_client.delete_documents(existing_ids)
+                                await delete_documents(existing_ids)
                             
                             # Add new documents
-                            added_count = self.rag_client.add_documents_batch(documents)
+                            added_count = await add_documents_batch(documents)
                             total_processed += added_count
                             
                             logger.info(f"Added {added_count} documents from batch")
@@ -159,7 +159,7 @@ class SyncManager:
             logger.error(f"Confluence sync failed: {e}")
             return 0
     
-    def sync_jira_data(self) -> int:
+    async def sync_jira_data(self) -> int:
         """Sync Jira issues to vector database"""
         if not self.jira_client:
             logger.warning("Jira client not initialized, skipping sync")
@@ -212,10 +212,10 @@ class SyncManager:
                     # Delete existing documents first (for updates)
                     if self.incremental_sync:
                         existing_ids = [doc['id'] for doc in documents]
-                        self.rag_client.delete_documents(existing_ids)
+                        await delete_documents(existing_ids)
                     
                     # Add new documents
-                    added_count = self.rag_client.add_documents_batch(documents)
+                    added_count = await add_documents_batch(documents)
                     total_processed += added_count
                     
                     logger.info(f"Added {added_count} documents from Jira batch")
@@ -230,7 +230,7 @@ class SyncManager:
             logger.error(f"Jira sync failed: {e}")
             return 0
     
-    def cleanup_old_documents(self):
+    async def cleanup_old_documents(self):
         """Clean up old or orphaned documents (optional)"""
         try:
             # This is a placeholder for cleanup logic
@@ -239,13 +239,13 @@ class SyncManager:
             # 2. Remove duplicate documents
             # 3. Clean up failed partial syncs
             
-            stats = self.rag_client.get_collection_stats()
+            stats = await get_collection_stats()
             logger.info(f"Collection stats after sync: {stats}")
             
         except Exception as e:
             logger.error(f"Cleanup failed: {e}")
     
-    def run_sync(self) -> Dict[str, Any]:
+    async def run_sync(self) -> Dict[str, Any]:
         """Run the complete synchronization process"""
         start_time = time.time()
         results = {
@@ -261,13 +261,13 @@ class SyncManager:
             logger.info("Starting data synchronization...")
             
             # Check RAG system health
-            if not self.rag_client.health_check():
+            if not await rag_health_check():
                 raise Exception("RAG system health check failed")
             
             # Sync Confluence data
             if self.sync_confluence:
                 try:
-                    confluence_count = self.sync_confluence_data()
+                    confluence_count = await self.sync_confluence_data()
                     results['confluence_count'] = confluence_count
                     logger.info(f"Confluence sync completed: {confluence_count} documents")
                 except Exception as e:
@@ -278,7 +278,7 @@ class SyncManager:
             # Sync Jira data
             if self.sync_jira:
                 try:
-                    jira_count = self.sync_jira_data()
+                    jira_count = await self.sync_jira_data()
                     results['jira_count'] = jira_count
                     logger.info(f"Jira sync completed: {jira_count} documents")
                 except Exception as e:
@@ -287,7 +287,7 @@ class SyncManager:
                     results['errors'].append(error_msg)
             
             # Cleanup
-            self.cleanup_old_documents()
+            await self.cleanup_old_documents()
             
             # Calculate totals
             results['total_count'] = results['confluence_count'] + results['jira_count']
@@ -314,7 +314,7 @@ def main():
     try:
         # Create and run sync manager
         sync_manager = SyncManager()
-        results = sync_manager.run_sync()
+        results = asyncio.run(sync_manager.run_sync())
         
         # Log results
         if results['success']:

@@ -15,7 +15,7 @@ COPY sync-job/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install additional dependencies for the new functional approach
-RUN pip install --no-cache-dir pydantic[email] redis aiohttp
+RUN pip install --no-cache-dir pydantic[email] redis aiohttp pydantic-settings
 
 # Copy application code
 COPY sync-job/ .
